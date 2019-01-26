@@ -1,0 +1,7 @@
+{
+  "prefix": "extra",
+  "admins": [
+              {"name": "Luca", "ID": "181805681349754880"}
+            ],
+  "supportedFiletypes" : ["mp3", "wav"]
+}
