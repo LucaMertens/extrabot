@@ -6,17 +6,17 @@ module.exports = function(message, args, client, dbx) {
       
     case "on":
       client.theme = true;
-      message.channel.send("yeeeeee");
+      message.channel.send("Theme-Playback turned on!");
       break;
 
     case "off":
       client.theme = false;
-      message.channel.send("nooooooo");
+      message.channel.send("Theme-Playback turned off.");
       break;
 
     case "upload":
       if (message.attachments.size == 0){
-        message.channel.send("M8, you forgot the attachment")
+        message.channel.send("No attachment found.")
         return;
       }
       else {
@@ -49,7 +49,7 @@ module.exports = function(message, args, client, dbx) {
       break;
 
     default:
-      message.channel.send("Usage:\nExtratheme on / Extratheme off: Turns the Theme-Playback on or off\nExtratheme upload: Adds a theme for yourself. If you include a mention, you can also upload it for someone else.");
+      message.channel.send("Usage:/n Extratheme on / Extratheme off: Turns the Theme-Playback on or off/n Extratheme upload: Adds a theme for yourself. If you include a mention, you can also upload it for someone else.");
       break;
 
   }
