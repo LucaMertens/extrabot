@@ -1,17 +1,3 @@
-//pinging the bot every 4.5 mins
-const http = require('http');
-const express = require('express');
-const app = express();
-app.get("/", (request, response) => {
-  //console.log(Date.now() + " Ping Received");
-  response.sendStatus(200);
-});
-app.listen(process.env.PORT); 
-setInterval(() => {
-  http.get(`http://${process.env.PROJECT_DOMAIN}.glitch.me/`);
-}, 270000);
-
-
 //Init Drobbox
 let Dropbox = require("dropbox").Dropbox;
 let dbx = new Dropbox({fetch: require('isomorphic-fetch'), accessToken: process.env.DROPBOXTOKEN});
@@ -20,12 +6,12 @@ let dbx = new Dropbox({fetch: require('isomorphic-fetch'), accessToken: process.
 //Start of bot
 const config = require("./config.json");
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client({disabledEvents: ["TYPING_START"]});
 client.functions = require('./functions.js');
 client.theme = true;
 
 
-//Define Event-Listeners
+//Start of Event-Listeners
 client.on("ready", () => {
    console.log("Extrabot is ready.");
   client.user.setActivity("Prefix:" + config.prefix, { type: 'LISTENING' });
@@ -33,7 +19,7 @@ client.on("ready", () => {
  
 
 client.on("message", async message => {
-  if (message.author.bot) {  //ignore bots
+  if (message.author.bot) {  //ignore other Discord-bots
     return;
   }
   else if (message.content.toLowerCase().startsWith(config.prefix)) {
@@ -42,7 +28,7 @@ client.on("message", async message => {
     let cmd = args.shift().toLowerCase(); //remove the first element from args and return it as the cmd variable
     
     try {
-      require("./commands/"+ cmd)(message, args, client, dbx);
+      require("./commands/"+ cmd)(message, args, client, dbx); //Try to load the command
     }
     catch(error){
       if (error.message.startsWith("Cannot find module './commands/")) {
@@ -58,41 +44,37 @@ client.on("message", async message => {
 });
 
 
-client.on("voiceStateUpdate", async (oldMember, newMember) => {
+client.on("voiceStateUpdate", async (oldMember, newMember) => { //The event "voiceStateUpdate" is called on multiple occasions, e.g. muting and unmuting
   let start = Date.now();
   if (
     client.theme &&
-    !newMember.user.bot &&
-    oldMember.voiceChannel != newMember.voiceChannel &&
-    newMember.voiceChannel != undefined &&
+    !newMember.user.bot && //Ignore other bots
+    oldMember.voiceChannel != newMember.voiceChannel && //Only react if the user changed or joined a voiceChannel
+    newMember.voiceChannel != undefined && //If the users "new" voiceChannel is undefined, they left --> Ignore
     newMember.voiceChannel.joinable
   ) {
-    const brotcast = client.createVoiceBroadcast();
-    //try {brotcast.end()} catch(err){console.error(err)};  
-    let voiceChannel = newMember.voiceChannel;
+    const broadcast = client.createVoiceBroadcast();
     
     dbx.filesListFolder({"path": "/themes/" + newMember.id})
     .then(folder => {
-      return (dbx.filesGetTemporaryLink({"path":"/themes/" + newMember.id + "/" + folder.entries[Math.floor(Math.random() * folder.entries.length)].name})); 
+      return (dbx.filesGetTemporaryLink({"path":"/themes/" + newMember.id + "/" + folder.entries[Math.floor(Math.random() * folder.entries.length)].name})); //The promise resolves to a themefile randomly choosen from all the users themefile
     })
     .then(themefile => {
-      brotcast.playArbitraryInput(themefile.link);
-      //console.log(themefile.link);
+      broadcast.playArbitraryInput(themefile.link);
       console.log(`Playing ${themefile.metadata.name} (User: ${newMember.user.username}).\nDelay: ${Date.now() - start}ms.`);
     })
     .catch(error => console.log(error));
     
-    voiceChannel.join()
+    newMember.voiceChannel.join()
     .then(connection => {
-      client.voiceChannel = voiceChannel;
-      connection.playBroadcast(brotcast);
+      connection.playBroadcast(broadcast);
     })
     .catch(error => console.log(error));
     
   }
   else if (
     newMember.voiceChannel == undefined &&
-    client.voiceChannel.members.size == 1
+    client.voiceChannel.members.filter(member => !member.user.bot).size == 0 //If noone is in the voiceChannel except for bots, leave the channel
   ){
     client.voiceChannel.leave();
   }
